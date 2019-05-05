@@ -56,8 +56,8 @@ void Light::sirenAnimation(const AnimationParam& param)
         toggler = !toggler;
         for (uint16_t index = 0; index < m_pixel_count; ++index) {
             if (toggler
-                    ? index % 2 == 0
-                    : index % 2 != 0) {
+                    ? index <= (m_pixel_count / 2)
+                    : index > (m_pixel_count / 2)) {
                 m_strip.SetPixelColor(index, color1);
             } else {
                 m_strip.SetPixelColor(index, color2);

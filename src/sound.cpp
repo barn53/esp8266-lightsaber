@@ -6,6 +6,7 @@ Sound::Sound()
     : mp3Serial(D1, D6) // RX, TX
     , mp3(mp3Serial)
 {
+    delay(2000);
 }
 
 void Sound::begin()
