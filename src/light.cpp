@@ -28,13 +28,8 @@ void Light::changeAnimation(const AnimationParam& param)
         m_color = m_strip.GetPixelColor(0);
         m_color_blend = colorForIndex(m_color_index);
     }
-    if (param.progress <= 0.5f) {
-        float progress = NeoEase::QuinticOut(param.progress * 2.0f);
-        m_strip.ClearTo(RgbColor::LinearBlend(m_color, RgbColor(0x0, 0x0, 0x0), progress));
-    } else {
-        float progress = NeoEase::QuinticIn((param.progress - 0.5f) * 2.0f);
-        m_strip.ClearTo(RgbColor::LinearBlend(RgbColor(0x0, 0x0, 0x0), m_color_blend, progress));
-    }
+    float progress = NeoEase::QuinticOut(param.progress);
+    m_strip.ClearTo(RgbColor::LinearBlend(m_color, m_color_blend, progress));
 }
 void Light::rainbowAnimation(const AnimationParam& param)
 {
@@ -70,6 +65,21 @@ void Light::offAnimation(const AnimationParam& param)
 {
     float progress = NeoEase::QuinticIn(param.progress);
     m_strip.SetPixelColor(m_pixel_count - (m_pixel_count * progress), RgbColor(0, 0, 0));
+}
+void Light::otaAnimation(const AnimationParam& param)
+{
+    if (param.state == AnimationState_Completed) {
+        HslColor color(m_strip.GetPixelColor(7));
+        color.H = 0.43f;
+        color.S = 1.0f;
+        if (color.L > 0.0f) {
+            color.L = 0.0f;
+        } else {
+            color.L = 0.1f;
+        }
+        m_strip.SetPixelColor(7, color);
+        m_animations.RestartAnimation(param.index);
+    }
 }
 void Light::batteryLowAnimation_1(const AnimationParam& param)
 {
@@ -166,6 +176,9 @@ uint8_t Light::beginSequence(Sequence sequence)
         break;
     case Sequence::Off:
         m_animations.StartAnimation(0, 1500, std::bind(&Light::offAnimation, this, std::placeholders::_1));
+        break;
+    case Sequence::OTA:
+        m_animations.StartAnimation(0, 500, std::bind(&Light::otaAnimation, this, std::placeholders::_1));
         break;
     default:
         break;

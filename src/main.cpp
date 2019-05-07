@@ -1,8 +1,10 @@
 #include <Arduino.h>
+#include <JeVe_EasyOTA.h>
 #include <ESP8266WiFi.h>
 
 #include "light.h"
 #include "sound.h"
+#include "secrets.h"
 #include <push_button.h>
 
 using lightsaber::Light;
@@ -13,25 +15,42 @@ PushButton button1(D5);
 PushButton button2(D2);
 PushButton button3(D7);
 PushButton button4(D3);
+
 Light light;
 Sound sound;
 Ticker tick;
+
+EasyOTA OTA(hostname);
 
 bool on(true);
 bool story(false);
 
 uint32_t lastADC;
-bool lowBatterySignaled(false);
-bool initialized(false);
+bool otaRequested(false);
 
 void setup()
 {
-    WiFi.disconnect();
-    WiFi.mode(WIFI_OFF);
-    WiFi.forceSleepBegin();
-
     Serial.begin(115200);
     Serial.printf("Go! \n");
+
+    light.begin();
+
+    if (digitalRead(D5) == 0)
+    {
+        otaRequested = true;
+
+        OTA.onMessage([](const String& message, int line) {
+            Serial.println(message);
+        });
+        OTA.addAP(ssid, password);
+        Serial.printf("OTA active!\n");
+
+        light.beginSequence(Light::Sequence::OTA);
+    } else {
+        WiFi.disconnect();
+        WiFi.mode(WIFI_OFF);
+        WiFi.forceSleepBegin();
+    }
 
     pinMode(D8, OUTPUT);
     digitalWrite(D8, LOW);
@@ -40,29 +59,42 @@ void setup()
 }
 
 #if 0
-button | short            | long               | double
---------------------------------------------------------------
- -1-   | change color     |                    | battery low simulation
-       |                  |                    |
- -2-   | retract/extend   | retract + off      |
-       |                  |                    |
- -3-   | advert/story     | advert/story       | voume up
-       |   next           |                    |
- -4-   | advert/story     | sound off/on       | volume down
-       |   next           |                    |
+button | short            | long               | double               | triple
+-----------------------------------------------------------------------------------------------
+ -1-   | change color     |                    |                      | battery low simulation
+       | press on startup:|                    |                      |
+       |   start in OTA   |                    |                      |
+       |   mode           |                    |                      |
+       |                  |                    |                      |
+ -2-   | retract/extend   | retract + off      |                      |
+       |                  |                    |                      |
+ -3-   | advert/story     | advert/story       | voume up             |
+       |   next           |                    |                      |
+ -4-   | advert/story     | sound off/on       | volume down          |
+       |   previous       |                    |                      |
 
 #endif
 
+bool lowBatterySignaled(false);
+bool initialized(false);
+
 void loop()
 {
-    if (!initialized
-        && millis() > 1000) {
-        light.begin();
-        light.beginSequence(Light::Sequence::On);
+    if (otaRequested) {
+        OTA.loop();
+        light.loop();
+        return;
+    }
 
+    if (!initialized) {
         sound.begin();
         sound.playOn();
-
+        uint32_t t(millis());
+        while (millis() - t < 200) {
+            sound.loop();
+            delay(1);
+        }
+        light.beginSequence(Light::Sequence::On);
         initialized = true;
     }
 
@@ -83,8 +115,8 @@ void loop()
                 uint8_t index(light.beginSequence(Light::Sequence::Change));
                 sound.playChange(index);
             }
-        } else if (e1 == PushButton::Event::DOUBLE_PRESS) {
-            Serial.printf("button 1 - PushButton::Event::DOUBLE_PRESS\n");
+        } else if (e1 == PushButton::Event::TRIPLE_PRESS) {
+            Serial.printf("button 1 - PushButton::Event::TRIPLE_PRESS\n");
             if (on) {
                 Serial.printf("Battery Low Simulation\n");
                 sound.playBatteryLow();
@@ -127,7 +159,8 @@ void loop()
                 Serial.printf("Sound Next\n");
                 sound.advert(false);
             }
-        } else if (e3 == PushButton::Event::LONG_PRESS) {
+        } else if (e3 == PushButton::Event::LONG_PRESS
+                   || e3 == PushButton::Event::LONG_HOLD) {
             Serial.printf("button 3 - PushButton::Event::LONG_PRESS\n");
             if (story) {
                 Serial.printf("Advert Mode\n");
@@ -167,7 +200,7 @@ void loop()
         if (millis() - lastADC > 5000) {
             int vBat(analogRead(A0));
 
-            Serial.printf("Battry Voltage: %iV\n", vBat);
+            Serial.printf("Battery Voltage: %iV\n", vBat);
             lastADC = millis();
 
             if (!lowBatterySignaled
@@ -175,6 +208,10 @@ void loop()
                 lowBatterySignaled = true;
                 sound.playBatteryLow();
                 light.beginSequence(Light::Sequence::BatteryLow);
+
+                tick.once_ms(15000, []() {
+                    digitalWrite(D8, HIGH);
+                });
             }
         }
     }

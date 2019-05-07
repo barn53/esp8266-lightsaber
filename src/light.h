@@ -10,6 +10,7 @@ public:
         On,
         Change,
         BatteryLow,
+        OTA,
         Off
     };
 
@@ -26,6 +27,7 @@ private:
     void rainbowAnimation(const AnimationParam& param);
     void sirenAnimation(const AnimationParam& param);
     void offAnimation(const AnimationParam& param);
+    void otaAnimation(const AnimationParam& param);
     void batteryLowAnimation_1(const AnimationParam& param);
     void batteryLowAnimation_2(const AnimationParam& param);
 
