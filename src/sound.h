@@ -46,7 +46,7 @@ public:
     void advert(bool previous);
     void playChange(uint8_t forColorIndex);
     void playOn();
-    void playOff();
+    void playOff(bool story);
     void playBatteryLow();
     void story(bool previous);
 

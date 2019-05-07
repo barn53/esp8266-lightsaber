@@ -109,9 +109,11 @@ void Sound::playOn()
     playEndlessHum();
     mp3.playAdvertisement(ADVERT_SOUND_ON);
 }
-void Sound::playOff()
+void Sound::playOff(bool story)
 {
-    silence();
+    if (!story) {
+        silence();
+    }
     mp3.playAdvertisement(ADVERT_SOUND_OFF);
 }
 

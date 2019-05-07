@@ -22,9 +22,6 @@ Ticker tick;
 
 EasyOTA OTA(hostname);
 
-bool on(true);
-bool story(false);
-
 uint32_t lastADC;
 bool otaRequested(false);
 
@@ -78,6 +75,9 @@ button | short            | long               | double               | triple
 bool lowBatterySignaled(false);
 bool initialized(false);
 
+bool on(true);
+bool story(false);
+
 void loop()
 {
     if (otaRequested) {
@@ -86,15 +86,13 @@ void loop()
         return;
     }
 
-    if (!initialized) {
+    if (!initialized
+        && millis() > 1000) {
+        light.beginSequence(Light::Sequence::On);
+
         sound.begin();
         sound.playOn();
-        uint32_t t(millis());
-        while (millis() - t < 200) {
-            sound.loop();
-            delay(1);
-        }
-        light.beginSequence(Light::Sequence::On);
+
         initialized = true;
     }
 
@@ -129,7 +127,7 @@ void loop()
             Serial.printf("button 2 - PushButton::Event::SHORT_PRESS\n");
             if (on) {
                 Serial.printf("Retract\n");
-                sound.playOff();
+                sound.playOff(story);
                 light.beginSequence(Light::Sequence::Off);
             } else {
                 Serial.printf("Extend\n");
@@ -141,7 +139,7 @@ void loop()
             Serial.printf("button 2 - PushButton::Event::LONG_PRESS\n");
             if (on) {
                 Serial.printf("Retract + Switch Off\n");
-                sound.playOff();
+                sound.playOff(story);
                 light.beginSequence(Light::Sequence::Off);
                 tick.once_ms(2000, []() {
                     digitalWrite(D8, HIGH);
