@@ -34,15 +34,6 @@
      - pip install -U platformio
      - platformio update
 
-# before_build:
-#     - pwd
-#     - ls -la
-#
-# before_install:
-#     - pwd
-#     - ls -la
-
-
  script:
     - pwd
     - ls -la
