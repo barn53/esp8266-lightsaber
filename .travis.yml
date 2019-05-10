@@ -35,7 +35,16 @@
      - platformio update
 
 # before_build:
-#     - cp src/rename_to_secrets.h src/secrets.h
+#     - pwd
+#     - ls -la
+#
+# before_install:
+#     - pwd
+#     - ls -la
+
 
  script:
+    - pwd
+    - ls -la
+    - cp src/rename_to_secrets.h src/secrets.h
      - platformio run
