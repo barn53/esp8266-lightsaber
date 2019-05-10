@@ -34,7 +34,7 @@
      - pip install -U platformio
      - platformio update
 
-before_install:
+before_build:
     - cp src/rename_to_secrets.h src/secrets.h
 
  script:
